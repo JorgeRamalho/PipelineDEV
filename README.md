@@ -88,7 +88,9 @@ docker compose up --build -d
 
 ## Pipeline Jenkins
 
-O `Jenkinsfile` usa um agente Linux com `python3`, `venv` e Docker CLI apontando para o socket do daemon. O job precisa ser do tipo Pipeline from SCM, com o script em `Jenkinsfile`.
+O `Jenkinsfile` usa um agente Linux com `python3`, `venv` e Docker CLI apontando para o socket do daemon. O job é do tipo Pipeline from SCM, com o script em `Jenkinsfile`.
+
+Neste laboratório o remoto é um repositório Git local (`file:///var/jenkins_home/git/python-devops-pipeline.git`). O plugin Git só faz esse checkout quando a propriedade `hudson.plugins.git.GitSCM.ALLOW_LOCAL_CHECKOUT` está `true`. Em um GitHub remoto essa propriedade não é necessária.
 
 O parâmetro `RELEASE_MODE` controla a etapa final:
 

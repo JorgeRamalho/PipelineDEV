@@ -31,44 +31,44 @@ pipeline {
 
         stage('Instalar dependências') {
             steps {
-                sh '''
-                    set -eo pipefail
+                sh '''bash -eo pipefail -c '
                     python3 -m venv .venv
                     . .venv/bin/activate
                     python -m pip install --upgrade pip
                     pip install -r requirements.txt
+                '
                 '''
             }
         }
 
         stage('Testes Python / Pytest') {
             steps {
-                sh '''
-                    set -eo pipefail
+                sh '''bash -eo pipefail -c '
                     . .venv/bin/activate
                     mkdir -p reports
                     pytest -v --junitxml=reports/pytest.xml
+                '
                 '''
             }
         }
 
         stage('Build Docker') {
             steps {
-                sh '''
-                    set -eo pipefail
+                sh '''bash -eo pipefail -c '
                     docker build -t "$IMAGE_NAME:$IMAGE_TAG" -t "$IMAGE_NAME:latest" .
+                '
                 '''
             }
         }
 
         stage('Executar container') {
             steps {
-                sh '''
-                    set -eo pipefail
+                sh '''bash -eo pipefail -c '
                     mkdir -p reports
                     docker run --rm \
                         -e TESTS_PASSED="$TESTS_PASSED" \
                         "$IMAGE_NAME:$IMAGE_TAG" | tee reports/container-result.json
+                '
                 '''
             }
         }
