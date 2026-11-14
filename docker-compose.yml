@@ -1,0 +1,27 @@
+services:
+  app:
+    build: .
+    image: python-devops-pipeline:local
+    container_name: python-devops-pipeline
+    ports:
+      - "8000:8000"
+    environment:
+      LEDGER_PATH: /data/runs.json
+    volumes:
+      - pipeline-data:/data
+    command: ["python", "-m", "app.main", "serve"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+
+volumes:
+  pipeline-data:
