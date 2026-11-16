@@ -18,8 +18,36 @@ SERVICE_NAME = "python-devops-pipeline"
 DEFAULT_HOST = "0.0.0.0"
 DEFAULT_PORT = 8000
 MAX_BODY_BYTES = 65_536
+DASHBOARD_TEMPLATE = Path(__file__).resolve().parent.parent / "index.html"
 
 _LEDGER_LOCK = threading.Lock()
+
+SIGNAL_CARDS = (
+    (
+        "dependencies_installed",
+        "Dependências",
+        "DEPENDENCIES_INSTALLED",
+        "O ambiente Python recebeu as bibliotecas do requirements.txt.",
+    ),
+    (
+        "tests_passed",
+        "Testes",
+        "TESTS_PASSED",
+        "O Pytest aprovou o release gate.",
+    ),
+    (
+        "image_built",
+        "Imagem Docker",
+        "IMAGE_BUILT",
+        "A imagem da aplicação foi construída.",
+    ),
+    (
+        "container_running",
+        "Container",
+        "CONTAINER_RUNNING",
+        "O container executou a decisão do gate.",
+    ),
+)
 
 
 @dataclass(frozen=True)
@@ -129,7 +157,7 @@ def delete_run(run_id: int, path: Path | None = None) -> bool:
     return True
 
 
-def render_dashboard(runs: list[dict], notice: str = "") -> str:
+def render_dashboard(runs: list[dict], notice: str = "", report: dict | None = None) -> str:
     notices = {
         "registrado": "Execução registrada no ledger.",
         "removido": "Execução removida do ledger.",
@@ -139,109 +167,76 @@ def render_dashboard(runs: list[dict], notice: str = "") -> str:
     if notice in notices:
         notice_html = f'<p class="notice">{notices[notice]}</p>'
 
+    gate = report or build_report(signals_from_env())
+    failed = gate.get("failed_checks") or []
+    if failed:
+        summary = "Falhou: " + ", ".join(str(item) for item in failed)
+    else:
+        summary = "Todos os sinais passaram."
+
     if runs:
         rows = "\n".join(_render_row(run) for run in reversed(runs))
     else:
-        rows = '<tr><td colspan="5">Nenhuma execução registrada.</td></tr>'
+        rows = '<tr><td colspan="6">Nenhuma execução registrada.</td></tr>'
 
-    return f"""<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PYTHON-DEVOPS-PIPELINE</title>
-  <style>
-    :root {{
-      color-scheme: light;
-      --ink: #1c1915;
-      --muted: #5e584f;
-      --line: #ddd6c8;
-      --paper: #f7f4ee;
-      --card: #fffdf9;
-      --success: #1f6b45;
-      --failure: #9d2c2c;
-    }}
-    body {{
-      margin: 0;
-      font: 16px/1.45 Georgia, "Iowan Old Style", serif;
-      background: var(--paper);
-      color: var(--ink);
-    }}
-    main {{
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 32px 20px 48px;
-    }}
-    h1 {{ font-size: 1.7rem; margin: 0 0 4px; }}
-    .lede {{ color: var(--muted); margin: 0 0 24px; }}
-    form, table {{
-      background: var(--card);
-      border: 1px solid var(--line);
-      width: 100%;
-    }}
-    form {{ padding: 16px; margin-bottom: 20px; }}
-    label {{ display: block; font-size: 0.85rem; margin: 10px 0 4px; }}
-    input, select, button {{
-      font: inherit;
-      padding: 8px 10px;
-      border: 1px solid var(--line);
-      background: white;
-    }}
-    button {{ cursor: pointer; background: var(--ink); color: white; }}
-    table {{ border-collapse: collapse; }}
-    th, td {{ text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }}
-    .SUCCESS {{ color: var(--success); font-weight: 700; }}
-    .FAILURE {{ color: var(--failure); font-weight: 700; }}
-    .notice {{ padding: 10px 12px; background: #efe7d6; }}
-    .inline {{ display: inline; }}
-  </style>
-</head>
-<body>
-  <main>
-    <h1>PYTHON-DEVOPS-PIPELINE</h1>
-    <p class="lede">Ledger de execuções do release gate. Versão {html.escape(__version__)}.</p>
-    {notice_html}
-    <form method="post" action="/api/runs">
-      <label for="status">Resultado</label>
-      <select id="status" name="status">
-        <option value="SUCCESS">SUCCESS</option>
-        <option value="FAILURE">FAILURE</option>
-      </select>
-      <label for="stage">Etapa</label>
-      <input id="stage" name="stage" value="pipeline" required>
-      <label for="summary">Resumo</label>
-      <input id="summary" name="summary" required placeholder="O que esta execução comprovou">
-      <button type="submit">Registrar execução</button>
-    </form>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Resultado</th>
-          <th>Etapa</th>
-          <th>Resumo</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows}
-      </tbody>
-    </table>
-  </main>
-</body>
-</html>
-"""
+    success_count = sum(1 for run in runs if run.get("status") == "SUCCESS")
+    failure_count = sum(1 for run in runs if run.get("status") == "FAILURE")
+    template = DASHBOARD_TEMPLATE.read_text(encoding="utf-8")
+    replacements = {
+        "__VERSION__": html.escape(__version__),
+        "__NOTICE__": notice_html,
+        "__GATE_STATUS__": html.escape(str(gate.get("status", "UNKNOWN"))),
+        "__GATE_CLASS__": html.escape(str(gate.get("status", ""))),
+        "__GATE_SUMMARY__": html.escape(summary),
+        "__SIGNAL_CARDS__": _render_signal_cards(gate.get("checks") or {}),
+        "__TOTAL_COUNT__": str(len(runs)),
+        "__SUCCESS_COUNT__": str(success_count),
+        "__FAILURE_COUNT__": str(failure_count),
+        "__ROWS__": rows,
+    }
+    for marker, value in replacements.items():
+        template = template.replace(marker, value)
+    return template
+
+
+def _render_signal_cards(checks: dict) -> str:
+    cards = []
+    for key, title, env_name, hint in SIGNAL_CARDS:
+        passed = bool(checks.get(key, False))
+        state = "ok" if passed else "bad"
+        label = "PASS" if passed else "FAIL"
+        cards.append(
+            "<div class=\"signal "
+            f'{state}">'
+            f"<span class=\"env\">{html.escape(env_name)}</span>"
+            f"<b>{html.escape(title)}</b>"
+            f"<strong class=\"{'SUCCESS' if passed else 'FAILURE'}\">{label}</strong>"
+            f"<small>{html.escape(hint)}</small>"
+            "</div>"
+        )
+    return "\n".join(cards)
+
+
+def _format_when(value: object) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "—"
+    if "T" in text:
+        return text.replace("T", " ")[:16]
+    return text
 
 
 def _render_row(run: dict) -> str:
     status = str(run["status"])
     run_id = int(run["id"])
+    when = html.escape(_format_when(run.get("created_at")))
     return (
         "<tr>"
         f"<td>{run_id}</td>"
         f'<td class="{html.escape(status)}">{html.escape(status)}</td>'
         f"<td>{html.escape(str(run['stage']))}</td>"
         f"<td>{html.escape(str(run['summary']))}</td>"
+        f"<td>{when}</td>"
         "<td>"
         f'<form class="inline" method="post" action="/api/runs/{run_id}/delete">'
         '<button type="submit">Remover</button>'
@@ -279,7 +274,11 @@ def _handler_factory(ledger: Path) -> type[BaseHTTPRequestHandler]:
             parsed = urlparse(self.path)
             if parsed.path == "/":
                 notice = parse_qs(parsed.query).get("notice", [""])[0]
-                body = render_dashboard(load_runs(ledger), notice).encode("utf-8")
+                body = render_dashboard(
+                    load_runs(ledger),
+                    notice,
+                    build_report(signals_from_env()),
+                ).encode("utf-8")
                 self._send(200, "text/html; charset=utf-8", body)
                 return
             if parsed.path == "/api/health":

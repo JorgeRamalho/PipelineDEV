@@ -16,6 +16,7 @@ RUN addgroup --system app \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY index.html ./index.html
 COPY app ./app
 
 USER app

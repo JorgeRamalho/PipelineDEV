@@ -42,11 +42,12 @@ Qualquer valor `false`, `0`, `no` ou `off` reprova o gate e o processo termina c
 ## Estrutura
 
 ```text
+index.html             Dashboard visual da pipeline
 app/main.py            Aplicação e ledger HTTP
 tests/test_main.py     Testes Pytest do gate, do ledger e da API
 requirements.txt       Dependências, incluindo o Pytest
 Dockerfile             Imagem executável
-docker-compose.yml     Sobe o ledger na porta 8000
+docker-compose.yml     Sobe o dashboard na porta 8000
 Jenkinsfile            Pipeline declarativo
 ```
 
@@ -72,13 +73,13 @@ O JSON passa a `"status": "FAILURE"`, `failed_checks` aponta `tests_passed` e o 
 
 ## Ledger de execuções
 
-O Compose publica o serviço de dados em <http://127.0.0.1:8000>:
+O dashboard visual fica em `index.html` e o Compose publica a tela em <http://127.0.0.1:8000>:
 
 ```powershell
 docker compose up --build -d
 ```
 
-- `GET /` mostra o ledger e o formulário.
+- `GET /` abre o dashboard: o mapa da pipeline, o release gate e o ledger.
 - `POST /api/runs` registra `status`, `stage` e `summary`.
 - `POST /api/runs/{id}/delete` remove um registro.
 - `GET /api/runs` devolve o ledger em JSON.

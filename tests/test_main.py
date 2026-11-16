@@ -83,6 +83,17 @@ def test_dashboard_escapes_summary_text():
     assert "Nenhuma execução registrada." not in page
 
 
+def test_dashboard_explains_pipeline_and_gate():
+    page = render_dashboard([], report=build_report(_signals()))
+
+    assert "Caminho da pipeline" in page
+    assert "Checkout" in page
+    assert "DEPENDENCIES_INSTALLED" in page
+    assert "Release gate agora" in page
+    assert 'class="badge SUCCESS"' in page
+    assert "Jenkinsfile" in page
+
+
 def test_main_prints_success_and_returns_zero(monkeypatch, capsys):
     for name in (
         "DEPENDENCIES_INSTALLED",

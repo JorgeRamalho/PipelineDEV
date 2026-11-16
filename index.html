@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PYTHON-DEVOPS-PIPELINE</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101418;
+      --bg-2: #171d23;
+      --panel: #1c242c;
+      --ink: #eef3f7;
+      --muted: #9aa8b5;
+      --line: #2c3844;
+      --accent: #6ee7c5;
+      --accent-dim: #16352d;
+      --success: #3ecf8e;
+      --failure: #f07178;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.5 "Segoe UI", "Trebuchet MS", sans-serif;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #1a3a34 0%, transparent 55%),
+        var(--bg);
+      color: var(--ink);
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .eyebrow {
+      margin: 0 0 6px;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    h1 { font-size: 2rem; margin: 0 0 8px; letter-spacing: -0.03em; }
+    .lede { color: var(--muted); margin: 0; max-width: 62ch; }
+    .badge {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 10px 14px;
+      min-width: 180px;
+      text-align: right;
+    }
+    .badge strong { display: block; font-size: 1.1rem; }
+    .badge.SUCCESS { border-color: #215e45; color: var(--success); }
+    .badge.FAILURE { border-color: #6d2d33; color: var(--failure); }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    .two { grid-template-columns: 1fr; }
+    .four { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .six { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    @media (min-width: 900px) {
+      .two { grid-template-columns: 1.3fr 0.7fr; }
+    }
+    section, form, table {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    section { margin-bottom: 16px; }
+    section, form { padding: 18px; }
+    h2 { margin: 0 0 10px; font-size: 1.05rem; }
+    p { margin: 0 0 10px; }
+    ol { margin: 0; padding-left: 18px; color: var(--muted); }
+    .step {
+      padding: 14px;
+      background: var(--bg-2);
+      border-top: 3px solid var(--accent);
+      min-height: 0;
+    }
+    .step b { display: block; margin: 6px 0 4px; }
+    .step span { color: var(--muted); font-size: 0.9rem; }
+    .num {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .signal {
+      padding: 14px;
+      background: var(--bg-2);
+      border-left: 4px solid var(--line);
+    }
+    .signal.ok { border-left-color: var(--success); }
+    .signal.bad { border-left-color: var(--failure); }
+    .signal b { display: block; margin: 6px 0 2px; }
+    .signal strong { display: block; }
+    .signal small { display: block; color: var(--muted); margin-top: 6px; }
+    .env { font-family: Consolas, "Courier New", monospace; font-size: 0.78rem; color: var(--accent); }
+    code, pre {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.86rem;
+    }
+    pre {
+      margin: 0;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      overflow: auto;
+      color: #d7e4ee;
+    }
+    .files { display: grid; gap: 8px; }
+    .files div {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .files code { color: var(--ink); }
+    .stats { display: flex; gap: 18px; color: var(--muted); margin-bottom: 12px; }
+    .stats b { color: var(--ink); }
+    form { margin: 16px 0; }
+    label { display: block; font-size: 0.82rem; color: var(--muted); margin: 10px 0 4px; }
+    input, select, button {
+      font: inherit;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--ink);
+    }
+    input, select { width: 100%; }
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      color: #08221b;
+      font-weight: 700;
+      border: 0;
+      margin-top: 12px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    td:nth-child(5) { white-space: nowrap; color: var(--muted); font-size: 0.9rem; }
+    th { color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+    .SUCCESS { color: var(--success); font-weight: 700; }
+    .FAILURE { color: var(--failure); font-weight: 700; }
+    .notice { padding: 10px 12px; background: var(--accent-dim); color: var(--accent); margin-bottom: 16px; }
+    .inline { display: inline; }
+    .inline button { margin: 0; background: transparent; color: var(--muted); border: 1px solid var(--line); }
+    footer { margin-top: 18px; color: var(--muted); font-size: 0.9rem; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">Laboratório DevOps</p>
+        <h1>PYTHON-DEVOPS-PIPELINE</h1>
+        <p class="lede">
+          Esta é a tela do projeto: um mapa da pipeline, o release gate que decide
+          SUCCESS ou FAILURE, e o ledger das execuções. Versão __VERSION__.
+        </p>
+      </div>
+      <div class="badge __GATE_CLASS__">
+        Release gate agora
+        <strong>__GATE_STATUS__</strong>
+        <span>__GATE_SUMMARY__</span>
+      </div>
+    </header>
+
+    __NOTICE__
+
+    <div class="grid two">
+      <section>
+        <h2>O que este projeto faz</h2>
+        <p>
+          Você escreve Python no Cursor, o Git guarda o código e o Jenkins executa
+          o fluxo sozinho. A aplicação é o <strong>release gate</strong>: ela só
+          devolve SUCCESS quando os quatro sinais abaixo passam.
+        </p>
+        <ol>
+          <li>O Jenkins obtém o código.</li>
+          <li>Prepara um ambiente Python isolado e instala as dependências.</li>
+          <li>Roda os testes com Pytest.</li>
+          <li>Constrói a imagem Docker e executa o container.</li>
+          <li>Registra SUCCESS ou FAILURE.</li>
+        </ol>
+      </section>
+      <section>
+        <h2>Como abrir esta tela</h2>
+        <p>Na pasta do projeto, no PowerShell:</p>
+        <pre>docker compose up --build -d</pre>
+        <p>Depois abra <a href="http://127.0.0.1:8000">http://127.0.0.1:8000</a>.</p>
+        <p>Sem Docker: <code>python -m app.main serve</code></p>
+      </section>
+    </div>
+
+    <section>
+      <h2>Caminho da pipeline</h2>
+      <div class="grid six">
+        <div class="step"><span class="num">1</span><b>Checkout</b><span>Jenkins puxa o repositório.</span></div>
+        <div class="step"><span class="num">2</span><b>Dependências</b><span>venv + pip install.</span></div>
+        <div class="step"><span class="num">3</span><b>Pytest</b><span>Valida o release gate.</span></div>
+        <div class="step"><span class="num">4</span><b>Docker build</b><span>Empacota a aplicação.</span></div>
+        <div class="step"><span class="num">5</span><b>Container</b><span>Decide SUCCESS/FAILURE.</span></div>
+        <div class="step"><span class="num">6</span><b>Resultado</b><span>Jenkins registra o veredito.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Pipeline Jenkins, etapa por etapa</h2>
+      <p>
+        O arquivo <code>Jenkinsfile</code> é a receita. O Jenkins só lê isso e executa.
+        O parâmetro <code>RELEASE_MODE</code> decide o final: <code>success</code> deixa
+        o container passar; <code>failure</code> manda <code>TESTS_PASSED=false</code>
+        e o gate devolve FAILURE.
+      </p>
+      <div class="files">
+        <div><code>Checkout</code><span>Puxa o Git e lista os arquivos. Sem código, o resto nem começa.</span></div>
+        <div><code>Instalar dependências</code><span>Cria <code>.venv</code> e instala o Pytest. Sinal: DEPENDENCIES_INSTALLED.</span></div>
+        <div><code>Testes Python / Pytest</code><span>Se um teste falhar, o pipeline para aqui. Sinal: TESTS_PASSED.</span></div>
+        <div><code>Build Docker</code><span>Constrói <code>python-devops-pipeline:BUILD_NUMBER</code>. Sinal: IMAGE_BUILT.</span></div>
+        <div><code>Executar container</code><span>Roda a app. Código 0 = SUCCESS, código 1 = FAILURE. Sinal: CONTAINER_RUNNING.</span></div>
+        <div><code>post</code><span>Arquiva <code>reports/</code> e imprime RESULTADO DO PIPELINE: SUCCESS ou FAILURE.</span></div>
+      </div>
+      <p>Job no Jenkins: <strong>Pipeline from SCM</strong>, repositório Git, script em <code>Jenkinsfile</code>.</p>
+      <pre>https://github.com/JorgeRamalho/PipelineDEV.git</pre>
+    </section>
+
+    <section>
+      <h2>Os quatro sinais do release gate</h2>
+      <div class="grid four">
+        __SIGNAL_CARDS__
+      </div>
+    </section>
+
+    <section>
+      <h2>Onde cada arquivo entra</h2>
+      <div class="files">
+        <div><code>Jenkinsfile</code><span>Orquestra as etapas no Jenkins.</span></div>
+        <div><code>app/main.py</code><span>Decide o gate, guarda o ledger e serve esta tela.</span></div>
+        <div><code>tests/test_main.py</code><span>Testes Pytest do gate, do ledger e da API.</span></div>
+        <div><code>Dockerfile</code><span>Receita da imagem que o pipeline constrói.</span></div>
+        <div><code>docker-compose.yml</code><span>Sobe este dashboard na porta 8000.</span></div>
+        <div><code>index.html</code><span>O visual que você está lendo agora.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Ledger de execuções</h2>
+      <p>Registre na mão o que o pipeline comprovou, ou apague um registro antigo.</p>
+      <div class="stats">
+        <span>Total <b>__TOTAL_COUNT__</b></span>
+        <span>SUCCESS <b>__SUCCESS_COUNT__</b></span>
+        <span>FAILURE <b>__FAILURE_COUNT__</b></span>
+      </div>
+      <form method="post" action="/api/runs">
+        <label for="status">Resultado</label>
+        <select id="status" name="status">
+          <option value="SUCCESS">SUCCESS</option>
+          <option value="FAILURE">FAILURE</option>
+        </select>
+        <label for="stage">Etapa</label>
+        <input id="stage" name="stage" value="pipeline" required>
+        <label for="summary">Resumo</label>
+        <input id="summary" name="summary" required placeholder="O que esta execução comprovou">
+        <button type="submit">Registrar execução</button>
+      </form>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Resultado</th>
+            <th>Etapa</th>
+            <th>Resumo</th>
+            <th>Quando</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          __ROWS__
+        </tbody>
+      </table>
+    </section>
+
+    <footer>
+      APIs: <a href="/api/health">/api/health</a> ·
+      <a href="/api/runs">/api/runs</a> ·
+      POST /api/runs registra · POST /api/runs/{id}/delete remove.
+    </footer>
+  </main>
+</body>
+</html>
